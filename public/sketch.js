@@ -39,7 +39,6 @@ searchInput.addEventListener('input', async (event) => {
 
 // Function to calculate dot product of two vectors
 function dotProduct(vecA, vecB) {
-  console.log(vecA, vecB);
   return vecA.reduce((sum, val, i) => sum + val * vecB[i], 0);
 }
 
