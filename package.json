@@ -1,0 +1,17 @@
+{
+  "name": "thesis-semantic-search",
+  "version": "0.0.1",
+  "description": "Experimenting with ITP Thesis Semantic Search",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@xenova/transformers": "^2.9.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.3"
+  }
+}
