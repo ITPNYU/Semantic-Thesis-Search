@@ -1,6 +1,4 @@
-# Saving Embeddings to JSON file
-
-## Overview
+# ITP Thesis Semantic Search Prototype
 
 This is an example Node.js application that processes projects from the ITP Project Database, generates embeddings, and saves the embeddings to local files. The embeddings are then used for a semantic search.
 
