@@ -10,5 +10,8 @@ for (let i = 0; i < venues.length; i++) {
   console.log(`Fetching data from ${url}...`);
   let response = await fetch(url);
   let json = await response.json();
-  fs.writeFileSync(`thesis-data/thesis-${venue.id}.json`, JSON.stringify(json));
+  let output = {
+    projects: json,
+  };
+  fs.writeFileSync(`thesis-data/thesis-${venue.id}.json`, JSON.stringify(output));
 }

@@ -1,4 +1,3 @@
-// Importing pipeline from transformers.js for advanced text processing and feature extraction
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
 
 const extractor = await pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5');
