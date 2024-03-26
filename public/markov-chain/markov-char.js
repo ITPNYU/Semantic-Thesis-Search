@@ -43,37 +43,39 @@ class MarkovGenerator {
     }
   }
 
-  // Generate a text from the information ngrams
-  // Updated generate function to incorporate recursion with a limit on the results array size
-  generate(prompt, results = [], currentLength = 0) {
-    if (results.length >= 10) {
-      // If we've reached the max number of results, stop the recursion
+  generate(prompt, maxOptions = 10, results = [], currentLength = 0) {
+    // Stop at 10 possibilities
+    if (results.length >= maxOptions) {
       return results;
     }
 
-    let current = prompt.substring(prompt.length - this.n, prompt.length);
+    // This should always be minimum length but something is broken
+    if (prompt.length < this.n) {
+      prompt = prompt.padEnd(this.n, ' ');
+    }
 
+    // Get the last n characters of the prompt
+    let current = prompt.substring(prompt.length - this.n, prompt.length);
+    // console.log(current);
+
+    // Finished at the desired length
     if (currentLength >= this.max) {
-      // If we've reached the max length for a single result, add it to the results and return
       if (!results.includes(prompt)) {
-        // Prevent adding duplicates
         results.push(prompt);
       }
       return results;
     } else if (this.ngrams[current]) {
-      // If the current ngram has possible continuations
       let possible_next = this.ngrams[current];
       for (let next of possible_next) {
-        // For each possible continuation, recursively generate more continuations
-        let newPrompt = prompt + next; // Create a new string with the next character
-        this.generate(newPrompt, results, currentLength + 1); // Pass the results array through recursion
-        if (results.length >= this.max) {
-          // Early exit if max results are reached during recursion
+        // new prompt withn next character
+        let newPrompt = prompt + next;
+        // Call the function recursively
+        this.generate(newPrompt, maxOptions, results, currentLength + 1);
+        if (results.length >= maxOptions) {
           return results;
         }
       }
     } else if (!results.includes(prompt)) {
-      // If no possible continuations and the prompt is not already in results
       results.push(prompt);
     }
     return results;
