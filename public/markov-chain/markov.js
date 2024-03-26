@@ -27,7 +27,7 @@ class MarkovGeneratorWord {
 
   // A function to feed in text to the markov chain
   feed(text) {
-    var tokens = text.tokenize();
+    const tokens = text.tokenize();
 
     // Discard this line if it's too short
     if (tokens.length < this.n) {
@@ -35,11 +35,11 @@ class MarkovGeneratorWord {
     }
 
     // Store the first ngram of this line
-    var beginning = tokens.slice(0, this.n).join(' ');
+    const beginning = tokens.slice(0, this.n).join(' ');
     this.beginnings.push(beginning);
 
     // Now let's go through everything and create the dictionary
-    for (var i = 0; i < tokens.length - this.n; i++) {
+    for (let i = 0; i < tokens.length - this.n; i++) {
       // Usings slice to pull out N elements from the array
       let gram = tokens.slice(i, i + this.n).join(' ');
       // What's the next element in the array?
@@ -52,36 +52,22 @@ class MarkovGeneratorWord {
       // Add to the list
       this.ngrams[gram].push(next);
     }
-
-    //console.log(this.beginnings);
   }
 
   // Generate a text from the information ngrams
   generate(prompt) {
     // Get a random beginning
     let current = prompt;
+    let results = [];
 
-    // The output is now an array of tokens that we'll join later
-    let output = current.tokenize();
-
-    // Generate a new token max number of times
-    for (let i = 0; i < this.max; i++) {
-      // If this is a valid ngram
-      if (this.ngrams[current]) {
-        // What are all the possible next tokens
-        let possible_next = this.ngrams[current];
-        // Pick one randomly
-        let next = random(possible_next);
-        // Add to the output
-        output.push(next);
-        // Get the last N entries of the output; we'll use this to look up
-        // an ngram in the next iteration of the loop
-        current = output.slice(output.length - this.n, output.length).join(' ');
-      } else {
-        break;
+    if (this.ngrams[current]) {
+      let possible_next = this.ngrams[current];
+      for (let i = 0; i < possible_next.length; i++) {
+        let output = current.tokenize();
+        output.push(possible_next[i]);
+        results.push(output.join(' '));
       }
     }
-    // Here's what we got!
-    return output.join(' ');
+    return results;
   }
 }
