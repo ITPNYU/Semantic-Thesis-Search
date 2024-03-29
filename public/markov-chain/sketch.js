@@ -5,8 +5,8 @@ let input;
 let data;
 let outputP;
 
-let minN = 2;
-let maxN = 4;
+let minN = 3;
+let maxN = 5;
 
 let generators = [];
 
@@ -24,10 +24,9 @@ function setup() {
     generators[i] = RiTa.markov(i);
     process(data, generators[i]);
   }
-  input = createInput('h');
+  input = createInput('');
   input.input(goMarkov);
   outputP = createP();
-  goMarkov();
 }
 
 function goMarkov() {
@@ -49,12 +48,16 @@ function goMarkov() {
   }
   word = random(matches);
   tokens[tokens.length - 1] = word;
-  let seed = tokens;
+  let seed = tokens.slice(max(0, tokens.length - n));
   let results = [];
   for (let i = 0; i < 10; i++) {
     results[i] = generators[n].generate({ seed });
   }
-  let prefix = seed.slice(0, seed.length - 1);
+  console.log(seed, tokens);
+  let extra = max(0, tokens.length - n + 1);
+  console.log(extra);
+  prefix = tokens.slice(0, extra);
+  console.log(prefix);
   results = results.map((elt) => RiTa.untokenize(prefix) + ' ' + elt);
   if (results) {
     outputP.html(results.join('<br>'));
