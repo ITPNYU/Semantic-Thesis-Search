@@ -53,11 +53,8 @@ function goMarkov() {
   for (let i = 0; i < 10; i++) {
     results[i] = generators[n].generate({ seed });
   }
-  console.log(seed, tokens);
   let extra = max(0, tokens.length - n + 1);
-  console.log(extra);
   prefix = tokens.slice(0, extra);
-  console.log(prefix);
   results = results.map((elt) => RiTa.untokenize(prefix) + ' ' + elt);
   if (results) {
     outputP.html(results.join('<br>'));
