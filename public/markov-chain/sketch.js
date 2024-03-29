@@ -3,10 +3,10 @@
 let markov;
 let input;
 let data;
-let output;
+let outputP;
 
-let minN = 4;
-let maxN = 8;
+let minN = 3;
+let maxN = 5;
 
 let generators = [];
 
@@ -21,70 +21,64 @@ function buildMarkov(n) {
 function setup() {
   noCanvas();
   for (let i = minN; i <= maxN; i++) {
-    generators[i] = new MarkovGenerator(i, 40);
+    generators[i] = RiTa.markov(i);
     process(data, generators[i]);
   }
-
-  input = createInput();
+  input = createInput('');
   input.input(goMarkov);
-  output = createP();
+  outputP = createP();
 }
 
 function goMarkov() {
-  let value = input.value().trim();
   let n = minN;
-  if (value.length < minN) {
-    let matches = [];
-    for (let i = 0; i < data.projects.length; i++) {
-      let elevator = data.projects[i].elevator_pitch;
-      let len = minN - value.length;
-      let regex = new RegExp(`${value}.{${len}}`, 'g');
-      let match = elevator.match(regex);
+  let value = input.value().trim() || 'interactive';
+  let tokens = RiTa.tokenize(value);
+  let word = tokens[tokens.length - 1];
+  let matches = [];
+  for (let i = 0; i < data.projects.length; i++) {
+    let elevator = decodeHtml(data.projects[i].elevator_pitch).toLowerCase();
+    let tokens = RiTa.tokenize(elevator);
+    for (let token of tokens) {
+      let regex = new RegExp(`^${word}.*`, 'g');
+      let match = token.match(regex);
       if (match) {
         matches.push(match[0]);
       }
     }
-    // if there are no matches, add padding
-    if (matches.length === 0) {
-      value = value.padEnd(minN, ' ');
-    } else {
-      value = random(matches);
-    }
-  } else {
-    n = min(value.length, maxN);
   }
-  let results = generators[n].generate(value, 10);
-
-  // Shuffle the order
-  // for (let i = 0; i < results.length; i++) {
-  //   let j = floor(random(results.length));
-  //   let temp = results[i];
-  //   results[i] = results[j];
-  //   results[j] = temp;
-  // }
-  // results = results.slice(0, 10);
-
-  output.html(results.join('<br>'));
+  word = random(matches);
+  tokens[tokens.length - 1] = word;
+  let seed = tokens.slice(max(0, tokens.length - n));
+  let results = [];
+  for (let i = 0; i < 10; i++) {
+    results[i] = generators[n].generate({ seed });
+  }
+  let extra = max(0, tokens.length - n + 1);
+  prefix = tokens.slice(0, extra);
+  results = results.map((elt) => RiTa.untokenize(prefix) + ' ' + elt);
+  if (results) {
+    outputP.html(results.join('<br>'));
+  }
 }
 
 function process(data, generator) {
   let projects = data.projects;
   for (let i = 0; i < projects.length; i++) {
     if (projects[i].elevator_pitch) {
-      let elevator = decodeHtml(projects[i].elevator_pitch);
-      generator.feed(elevator);
+      let elevator = decodeHtml(projects[i].elevator_pitch.toLowerCase());
+      generator.addText(elevator);
     }
     if (projects[i].description) {
-      let description = decodeHtml(projects[i].description);
-      generator.feed(description);
+      let description = decodeHtml(projects[i].description.toLowerCase());
+      generator.addText(description);
     }
     if (projects[i].background) {
-      let background = decodeHtml(projects[i].background);
-      generator.feed(background);
+      let background = decodeHtml(projects[i].background.toLowerCase());
+      generator.addText(background);
     }
     if (projects[i].technical_system) {
-      let technical_system = decodeHtml(projects[i].technical_system);
-      generator.feed(technical_system);
+      let technical_system = decodeHtml(projects[i].technical_system.toLowerCase());
+      generator.addText(technical_system);
     }
   }
 }
