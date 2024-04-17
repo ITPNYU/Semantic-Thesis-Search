@@ -1,64 +1,119 @@
-// https://github.com/Programming-from-A-to-Z/A2Z-F23
+let N = 2;
+let generator;
+let allTokens = {};
 
-let markov;
+// Elements
 let input;
-let data;
 let outputP;
+let searchP;
 
-let minN = 3;
-let maxN = 5;
+let extractor;
+let embeddings;
 
-let generators = [];
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.0';
+// Load JSON data using fetch
+async function loadData() {
+  let response = await fetch('thesis-202.json');
+  let data = await response.json();
+  generator = RiTa.markov(N, { maxAttempts: 50 });
+  process(data, generator);
+  initializeUI();
+  tokenizeData(data);
+  extractor = await pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5');
 
-function preload() {
-  data = loadJSON('thesis-193.json');
+  const raw = await fetch('thesis-embeddings-202.json');
+  const json = await raw.json();
+  embeddings = json.embeddings;
 }
 
-function buildMarkov(n) {
-  process(data);
+// Initialize UI components
+function initializeUI() {
+  input = document.createElement('input');
+  input.style.width = '500px';
+  input.addEventListener('input', goMarkov);
+  document.body.appendChild(input);
+
+  outputP = document.createElement('p');
+  document.body.appendChild(outputP);
+
+  searchP = document.createElement('p');
+  document.body.appendChild(searchP);
 }
 
-function setup() {
-  noCanvas();
-  for (let i = minN; i <= maxN; i++) {
-    generators[i] = RiTa.markov(i);
-    process(data, generators[i]);
+// Tokenize data
+function tokenizeData(data) {
+  for (let i = 0; i < data.projects.length; i++) {
+    tokenizeAndAdd(data.projects[i].elevator_pitch);
+    tokenizeAndAdd(data.projects[i].description);
   }
-  input = createInput('');
-  input.input(goMarkov);
-  outputP = createP();
+  allTokens = Object.keys(allTokens);
 }
 
-function goMarkov() {
-  let n = minN;
-  let value = input.value().trim() || 'interactive';
+// Tokenize and add words to allTokens
+function tokenizeAndAdd(text) {
+  if (!text) return;
+  let decodedText = decodeHtml(text.toLowerCase());
+  let tokens = RiTa.tokenize(decodedText);
+  tokens.forEach((word) => {
+    if (!allTokens[word]) allTokens[word] = true;
+  });
+}
+
+// Get matches for autocompletion
+function getMatches(word) {
+  return allTokens.filter((token) => token.startsWith(word));
+}
+
+async function getEmbeddings(sentences) {
+  let embeddings = [];
+  for (let sentence of sentences) {
+    let output = await extractor(sentence, { pooling: 'mean', normalize: true });
+    embeddings.push(output.data);
+  }
+  return embeddings;
+}
+
+// Generate and display markov chain output
+async function goMarkov() {
+  let value = input.value.trim().toLowerCase();
   let tokens = RiTa.tokenize(value);
   let word = tokens[tokens.length - 1];
-  let matches = [];
-  for (let i = 0; i < data.projects.length; i++) {
-    let elevator = decodeHtml(data.projects[i].elevator_pitch).toLowerCase();
-    let tokens = RiTa.tokenize(elevator);
-    for (let token of tokens) {
-      let regex = new RegExp(`^${word}.*`, 'g');
-      let match = token.match(regex);
-      if (match) {
-        matches.push(match[0]);
-      }
-    }
-  }
-  word = random(matches);
-  tokens[tokens.length - 1] = word;
-  let seed = tokens.slice(max(0, tokens.length - n));
+  let matches = getMatches(word);
   let results = [];
-  for (let i = 0; i < 10; i++) {
-    results[i] = generators[n].generate({ seed });
+
+  for (let i = 0; i < Math.min(5, matches.length); i++) {
+    let swap = matches[Math.floor(Math.random() * matches.length)];
+    let tokensCopy = tokens.slice();
+    if (swap) tokensCopy[tokens.length - 1] = swap;
+    let generated = '';
+    try {
+      let seed = tokensCopy.slice(-N);
+      generated = generator.generate({ seed, maxLength: 5 });
+      let prefix = tokensCopy.slice(0, tokensCopy.length - N + 1);
+      generated = RiTa.untokenize(prefix.concat(RiTa.tokenize(generated)));
+    } catch (e) {
+      // console.error(e);
+    }
+    results.push(generated);
   }
-  let extra = max(0, tokens.length - n + 1);
-  prefix = tokens.slice(0, extra);
-  results = results.map((elt) => RiTa.untokenize(prefix) + ' ' + elt);
-  if (results) {
-    outputP.html(results.join('<br>'));
-  }
+  results = results.filter((r) => r.length > 0);
+  if (results.length < 1) results.push(value);
+  outputP.innerHTML = results.join('<br>');
+
+  const queryEmbedding = await getEmbeddings([value]);
+
+  const similarities = embeddings.map((embedding) => cosineSimilarity(embedding.embedding, queryEmbedding[0]));
+  const sortedIndices = similarities.map((_, i) => i).sort((a, b) => similarities[b] - similarities[a]);
+  const topResults = sortedIndices.slice(0, 5).map((i) => embeddings[i]);
+
+  searchP.innerHTML = topResults.map((r) => r.title + ' : ' + r.student).join('<br>');
+}
+
+// Decode HTML entities
+function decodeHtml(html) {
+  let txt = document.createElement('textarea');
+  txt.innerHTML = html;
+  return txt.value;
 }
 
 function process(data, generator) {
@@ -83,8 +138,23 @@ function process(data, generator) {
   }
 }
 
-function decodeHtml(html) {
-  let txt = document.createElement('textarea');
-  txt.innerHTML = html;
-  return txt.value;
+// Load the data when the document is ready
+document.addEventListener('DOMContentLoaded', loadData);
+
+// Function to calculate dot product of two vectors
+function dotProduct(vecA, vecB) {
+  return vecA.reduce((sum, val, i) => sum + val * vecB[i], 0);
+}
+
+// Function to calculate the magnitude of a vector
+function magnitude(vec) {
+  return Math.sqrt(vec.reduce((sum, val) => sum + val * val, 0));
+}
+
+// Function to calculate cosine similarity between two vectors
+function cosineSimilarity(vecA, vecB) {
+  const numerator = dotProduct(vecA, vecB);
+  const denominator = magnitude(vecA) * magnitude(vecB);
+  // console.log(numerator, denominator);
+  return numerator / denominator;
 }
