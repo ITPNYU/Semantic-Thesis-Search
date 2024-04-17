@@ -29,6 +29,8 @@ async function loadData() {
 // Initialize UI components
 function initializeUI() {
   input = document.createElement('input');
+  input.placeholder = 'explore';
+
   input.style.width = '500px';
   input.addEventListener('input', goMarkov);
   document.body.appendChild(input);
@@ -81,7 +83,7 @@ async function goMarkov() {
   let matches = getMatches(word);
   let results = [];
 
-  for (let i = 0; i < Math.min(5, matches.length); i++) {
+  for (let i = 0; i < 5; i++) {
     let swap = matches[Math.floor(Math.random() * matches.length)];
     let tokensCopy = tokens.slice();
     if (swap) tokensCopy[tokens.length - 1] = swap;
@@ -97,16 +99,18 @@ async function goMarkov() {
     results.push(generated);
   }
   results = results.filter((r) => r.length > 0);
-  if (results.length < 1) results.push(value);
+  while (results.length < 5) results.push(value);
+  results.sort((a, b) => b.length - a.length);
   outputP.innerHTML = results.join('<br>');
 
   const queryEmbedding = await getEmbeddings([value]);
 
   const similarities = embeddings.map((embedding) => cosineSimilarity(embedding.embedding, queryEmbedding[0]));
   const sortedIndices = similarities.map((_, i) => i).sort((a, b) => similarities[b] - similarities[a]);
-  const topResults = sortedIndices.slice(0, 5).map((i) => embeddings[i]);
+  const topResults = sortedIndices.slice(0, 10).map((i) => embeddings[i]);
 
-  searchP.innerHTML = topResults.map((r) => r.title + ' : ' + r.student).join('<br>');
+  searchP.innerHTML = '<br><b>Top Search Results:</b><br>';
+  searchP.innerHTML += topResults.map((r) => r.title + ' : ' + r.student).join('<br>');
 }
 
 // Decode HTML entities
