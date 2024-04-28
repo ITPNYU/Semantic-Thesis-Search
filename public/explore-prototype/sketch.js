@@ -130,7 +130,7 @@ async function goMarkov() {
   const sortedIndices = similarities
     .map((_, i) => i)
     .sort((a, b) => similarities[b] - similarities[a]);
-  const topResults = sortedIndices.map((i) => embeddings[i]);
+  const topResults = sortedIndices.map((i) => embeddings[i].id);
   console.log(topResults);
 }
 
