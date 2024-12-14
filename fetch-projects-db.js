@@ -3,7 +3,7 @@ import fs from 'fs';
 // let data = fs.readFileSync('venues.json', 'utf-8');
 // let { venues } = JSON.parse(data);
 
-let venues = [{ id: 202 }];
+let venues = [{ id: 211 }];
 
 for (let i = 0; i < venues.length; i++) {
   let venue = venues[i];
@@ -16,5 +16,5 @@ for (let i = 0; i < venues.length; i++) {
   let output = {
     projects: json,
   };
-  fs.writeFileSync(`thesis-data/thesis-${venue.id}.json`, JSON.stringify(output));
+  fs.writeFileSync(`show-data/show-${venue.id}.json`, JSON.stringify(output));
 }

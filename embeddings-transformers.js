@@ -1,18 +1,21 @@
 import * as fs from 'fs';
-import { pipeline } from '@xenova/transformers';
+import { pipeline } from '@huggingface/transformers';
 
 // Load the embeddings model
-const extractor = await pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5');
-
+const extractor = await pipeline('feature-extraction', 'mixedbread-ai/mxbai-embed-large-v1', {
+  progress_callback: (x) => {
+    if (x.progress) process.stdout.write(`\r${Math.round(x.progress)}% loaded`);
+  },
+});
 // const venuesData = fs.readFileSync('venues.json', 'utf-8');
 // const { venues } = JSON.parse(venuesData);
 
-let venues = [{ name: '2024', id: 202 }];
+let venues = [{ name: 'Winter Show 2024', id: 211 }];
 
 for (let venue of venues) {
   const outputJSON = { embeddings: [] };
-  console.log(`Processing venue: ${venue.name}...`);
-  const projectData = fs.readFileSync(`thesis-data/thesis-${venue.id}.json`, 'utf-8');
+  console.log(`\nProcessing venue: ${venue.name}...`);
+  const projectData = fs.readFileSync(`show-data/show-${venue.id}.json`, 'utf-8');
   const { projects } = JSON.parse(projectData);
   for (let project of projects) {
     let title = project.project_name;
@@ -21,8 +24,7 @@ for (let venue of venues) {
     let output;
     try {
       output = await extractor(text, {
-        pooling: 'mean',
-        normalize: true,
+        pooling: 'cls',
       });
     } catch (e) {
       console.log(e);
@@ -30,7 +32,7 @@ for (let venue of venues) {
     const embedding = output.tolist()[0];
     outputJSON.embeddings.push({ title, student, text, embedding });
   }
-  const fileOut = `embeddings/thesis-embeddings-${venue.id}.json`;
+  const fileOut = `embeddings/show-embeddings-${venue.id}.json`;
   fs.writeFileSync(fileOut, JSON.stringify(outputJSON));
   console.log(`Embeddings saved to ${fileOut}`);
 }

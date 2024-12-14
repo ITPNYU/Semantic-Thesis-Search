@@ -1,40 +1,58 @@
-import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.0';
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 
-const extractor = await pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5');
+// Get the loading bar element
+const loadingBar = document.getElementById('loadingBar');
+const loadingContainer = document.getElementById('loadingContainer');
+
+const extractor = await pipeline('feature-extraction', 'mixedbread-ai/mxbai-embed-large-v1', {
+  progress_callback: (x) => {
+    if (x.progress) {
+      const progress = Math.round(x.progress * 100); // Convert to percentage
+      loadingBar.value = progress;
+    }
+  },
+});
+
+// Hide the loading bar once loading is complete
+loadingContainer.style.display = 'none';
 async function getEmbeddings(sentences) {
   let embeddings = [];
   for (let sentence of sentences) {
-    let output = await extractor(sentence, { pooling: 'mean', normalize: true });
+    const output = await extractor(sentence, {
+      pooling: 'cls',
+    });
     embeddings.push(output.data);
   }
   return embeddings;
 }
 
-const raw = await fetch('thesis-embeddings-202.json');
+const raw = await fetch('show-embeddings-211.json');
 const { embeddings } = await raw.json();
 
 const searchInput = document.getElementById('searchInput');
 const results = document.getElementById('searchResults');
-
-const generator = await pipeline('text-generation', 'Felladrin/onnx-TinyMistral-248M-Chat-v2');
 
 console.log('ready');
 searchInput.addEventListener('input', async (event) => {
   const query = event.target.value;
   const queryEmbedding = await getEmbeddings([query]);
 
-  const similarities = embeddings.map((embedding) => cosineSimilarity(embedding.embedding, queryEmbedding[0]));
-  const sortedIndices = similarities.map((_, i) => i).sort((a, b) => similarities[b] - similarities[a]);
+  const similarities = embeddings.map((embedding) =>
+    cosineSimilarity(embedding.embedding, queryEmbedding[0])
+  );
+  const sortedIndices = similarities
+    .map((_, i) => i)
+    .sort((a, b) => similarities[b] - similarities[a]);
   const topResults = sortedIndices.slice(0, 5).map((i) => embeddings[i]);
 
-  const output = await generator(query);
-  console.log(output);
-  results.innerHTML = output[0].generated_text;
-  // for (let result of topResults) {
-  //   const li = document.createElement('li');
-  //   li.textContent = result.text;
-  //   results.appendChild(li);
-  // }
+  // clear all results
+  results.innerHTML = '';
+
+  for (let result of topResults) {
+    const li = document.createElement('li');
+    li.textContent = result.title + ' : ' + result.student;
+    results.appendChild(li);
+  }
 });
 
 // Function to calculate dot product of two vectors
